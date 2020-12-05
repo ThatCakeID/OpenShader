@@ -1,0 +1,33 @@
+// __multiversion__
+// This signals the loading code to prepend either #version 100 or #version 300 es as apropriate.
+
+#include "fragmentVersionCentroid.h"
+
+#if __VERSION__ >= 300
+	#if defined(TEXEL_AA) && defined(TEXEL_AA_FEATURE)
+		_centroid in highp vec2 uv;
+	#else
+		_centroid in vec2 uv;
+	#endif
+#else
+	varying vec2 uv;
+#endif
+
+#include "uniformShaderConstants.h"
+#include "util.h"
+#include "uniformPerFrameConstants.h"
+
+uniform sampler2D TEXTURE_0;
+varying highp vec3 posi;
+
+#include "include/sun_moon.h"
+
+void main()
+{
+	float rainTime = (1.0 - pow(FOG_CONTROL.y, 5.0));
+	float nightTime = pow(max(min(1.0 - FOG_COLOR.r * 1.5, 1.0), 0.0), 1.2);
+	float dayTime = pow(max(min(1.0 - FOG_COLOR.b * 1.2, 1.0), 0.0), 0.5);
+	float duskTime = clamp(((1.5 - FOG_COLOR.r * 2.0) + (1.0 - FOG_COLOR.b)) * (1.0 - dot(FOG_COLOR.rgb, vec3(0.31))) * FOG_COLOR.g * 2.0, 0.0, 1.0) * (1.0 - rainTime);
+	
+	gl_FragColor = sunAndMoon(FOG_COLOR, posi, dayTime, nightTime, duskTime, rainTime);
+}

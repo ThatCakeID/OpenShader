@@ -1,0 +1,24 @@
+// __multiversion__
+// This signals the loading code to prepend either #version 100 or #version 300 es as apropriate.
+
+#include "uniformWorldConstants.h"
+#include "uniformShaderConstants.h"
+#include "fragmentVersionSimple.h"
+#include "uniformPerFrameConstants.h"
+
+varying highp vec3 pos;
+
+#include "include/clouds.h"
+
+void main()
+{
+	float rainTime = (1.0 - pow(FOG_CONTROL.y, 5.0));
+	float nightTime = pow(max(min(1.0 - FOG_COLOR.r * 1.5, 1.0), 0.0), 1.2);
+	float dayTime = pow(max(min(1.0 - FOG_COLOR.b * 1.2, 1.0), 0.0), 0.5);
+	float duskTime = clamp(((1.5 - FOG_COLOR.r * 2.0) + (1.0 - FOG_COLOR.b)) * (1.0 - dot(FOG_COLOR.rgb, vec3(0.31))) * FOG_COLOR.g * 2.0, 0.0, 1.0) * (1.0 - rainTime);
+	float lPos = length(pos.xz);
+
+	vec3 skyc = skyc(FOG_COLOR, dayTime, nightTime, duskTime, rainTime, lPos);
+    vec3 skyCloud = skyCloud(skyc, pos, dayTime, nightTime, duskTime, rainTime, lPos);
+	gl_FragColor = vec4(skyCloud, FOG_COLOR.a);
+}

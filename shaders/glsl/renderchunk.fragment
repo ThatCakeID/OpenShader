@@ -1,0 +1,168 @@
+// __multiversion__
+// This signals the loading code to prepend either #version 100 or #version 300 es as apropriate.
+
+#include "fragmentVersionCentroid.h"
+
+#if __VERSION__ >= 300
+	#ifndef BYPASS_PIXEL_SHADER
+		#if defined(TEXEL_AA) && defined(TEXEL_AA_FEATURE)
+			_centroid in highp vec2 uv0;
+			_centroid in highp vec2 uv1;
+		#else
+			_centroid in vec2 uv0;
+			_centroid in vec2 uv1;
+		#endif
+	#endif
+#else
+	#ifndef BYPASS_PIXEL_SHADER
+		varying vec2 uv0;
+		varying vec2 uv1;
+	#endif
+#endif
+
+varying vec4 color;
+varying highp vec3 position, wpos;
+varying highp vec2 screenPos;
+
+#ifdef FOG
+	varying vec4 fogColor;
+#endif
+
+#include "uniformWorldConstants.h"
+#include "uniformPerFrameConstants.h"
+#include "uniformShaderConstants.h"
+#include "uniformRenderChunkConstants.h"
+#include "util.h"
+
+LAYOUT_BINDING(0) uniform sampler2D TEXTURE_0;
+LAYOUT_BINDING(1) uniform sampler2D TEXTURE_1;
+LAYOUT_BINDING(2) uniform sampler2D TEXTURE_2;
+
+#include "include/color.h"
+#include "include/condition.h"
+#include "include/render.h"
+#include "include/rain.h"
+#include "include/config.h"
+
+void main()
+{
+	#ifdef BYPASS_PIXEL_SHADER
+		gl_FragColor = vec4(0, 0, 0, 0);
+		return;
+	#else
+		#if USE_TEXEL_AA
+			vec4 diffuse = texture2D_AA(TEXTURE_0, uv0);
+		#else
+			vec4 diffuse = texture2D(TEXTURE_0, uv0);
+		#endif
+	
+		float noLight = 1.0 - uv1.x;
+		float dayTime, duskTime, nightTime, rainTime;
+		float ussr = texture2D(TEXTURE_1, vec2(0.0, 1.0)).r;
+		rainTime = (1.0 - pow(FOG_CONTROL.y, 11.0));
+		dayTime = clamp(max(ussr - 0.5, 0.0) * 2.0, 0.0, 1.0);
+		nightTime = 1.0 - dayTime;
+		duskTime = (1.0 - min((ussr - 0.5) * 2.5, 1.0)) * max((ussr - 0.4) * 2.5, 0.0) * (1.0 - rainTime) * 2.5 * uv1.y;
+	
+		highp float time_ = max(0.0, min(1.0, (ussr - 0.5) / 0.5));
+	
+		#ifdef SEASONS_FAR
+			diffuse.a = 1.0;
+		#endif
+	
+		#if USE_ALPHA_TEST
+			#ifdef ALPHA_TO_COVERAGE
+				#define ALPHA_THRESHOLD 0.05
+			#else
+				#define ALPHA_THRESHOLD 0.5
+			#endif
+			if(diffuse.a < ALPHA_THRESHOLD)
+				discard;
+		#endif
+		
+		vec4 inColor = color;
+		#if defined(BLEND)
+           float calcTransparent = inColor.a;
+           if (isWater(color)) {
+              #ifdef MORE_TRANSPARENT_WATER
+                 calcTransparent = calcTransparent - transWater;
+              #endif
+              #ifdef CUSTOM_WATER_COLOR
+                 diffuse.rgb *= waterColor;
+              #endif
+           }
+           diffuse.a *= calcTransparent;
+		#endif
+	
+		#if !defined(ALWAYS_LIT)
+			diffuse *= texture2D(TEXTURE_1, uv1);
+		#endif
+	
+		#ifndef SEASONS
+			#if !USE_ALPHA_TEST && !defined(BLEND)
+				diffuse.a = inColor.a;
+			#endif
+		
+			diffuse.rgb *= inColor.rgb;
+		#else
+			vec2 uv = inColor.xy;
+			diffuse.rgb *= mix(vec3(1.0,1.0,1.0), texture2D(TEXTURE_2, uv).rgb*2.0, inColor.b);
+			diffuse.rgb *= inColor.aaa;
+			diffuse.a = 1.0;
+		#endif
+	
+      #ifdef CUSTOM_TORCH_COLOR
+		diffuse.rgb = perfectLight(diffuse.rgb, color, FOG_COLOR, uv1, (1.0 - dayTime), (1.0 - rainTime));
+      #endif
+	
+		#ifdef LEAVES_SHADOW
+		diffuse.rgb = perfectLeavesShadow(diffuse.rgb, color, uv1, (1.0 - nightTime), (1.0 - rainTime), noLight);
+      #endif
+	
+		#ifdef TREE_SHADOW
+		diffuse.rgb = perfectTreeShadow(diffuse.rgb, color, uv1, (1.0 - nightTime), (1.0 - rainTime), noLight);
+      #endif
+	
+		#ifdef SIDEBLOCK_SHADOW
+		diffuse.rgb = perfectSideBlockShadow(diffuse.rgb, color, uv1, (1.0 - nightTime), (1.0 - rainTime), noLight);
+      #endif
+	
+		#ifdef RAINSPLASH_EFFECTS
+      if (isRain(FOG_CONTROL) && !isNether(FOG_COLOR) && !isTheEnd(FOG_COLOR))
+		diffuse.rgb += rainSplash(position, uv1, rainTime);
+      #endif
+		
+		#ifdef RAINPUDDLE_EFFECTS
+      if (isRain(FOG_CONTROL) && !isNether(FOG_COLOR) && !isTheEnd(FOG_COLOR))
+		diffuse.rgb += rainPuddle(position, uv1, rainTime);
+      #endif
+		
+		#ifdef CUSTOM_WORLD_COLOR
+		diffuse.rgb = perfectWorldLight(diffuse.rgb, uv1, dayTime, nightTime, duskTime, rainTime, noLight);
+      #endif
+      
+      if (isNether(FOG_COLOR) && !isWater(color) && !isUnderwater(FOG_COLOR) && !isTheEnd(FOG_COLOR)) {
+      #ifdef CUSTOM_NETHER_COLOR
+      diffuse.rgb *= netherColor;
+      #endif
+      #ifdef CUSTOM_NETHER_LIGHT_COLOR
+      diffuse.rgb += netherLightColor * uv1.x;
+      #endif
+      }
+	
+		//Tone Mapping
+     #ifdef LIGHT_ADJUSMENT
+		float br = (color.r + color.g + color.b) / 2.5;
+		diffuse.rgb = mix(diffuse.rgb, diffuse.rgb * 0.9, clamp(pow(br, 2.0), 0.0, 1.0));
+     #endif
+     #ifdef TONEMAP
+		diffuse.rgb *= abs(vec3(1.1));
+		diffuse.rgb = doToneMapping(diffuse.rgb);
+     #endif
+		
+		#ifdef FOG
+			diffuse.rgb = mix(diffuse.rgb, fogColor.rgb, fogColor.a);
+		#endif
+			gl_FragColor = diffuse;
+	#endif // BYPASS_PIXEL_SHADER
+}

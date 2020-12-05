@@ -1,0 +1,23 @@
+// __multiversion__
+// This signals the loading code to prepend either #version 100 or #version 300 es as apropriate.
+
+#include "vertexVersionSimple.h"
+#include "uniformPerFrameConstants.h"
+#include "uniformWorldConstants.h"
+
+attribute mediump vec4 POSITION;
+attribute vec4 COLOR;
+
+varying vec4 color;
+
+void main()
+{
+    gl_Position = WORLDVIEWPROJ * POSITION;
+	highp vec3 cp = POSITION.xyz * -0.15;
+
+	highp float a = abs(cos(cp.x * 2.0 + cp.z * 1.9 + TIME * 0.71) * 1.7 + cos(cp.x * 2.8 - cp.z * 1.3 + TIME * 0.81));
+	highp float b = abs(cos(cp.x * 6.0 + cp.z * 3.5 + TIME * 0.91) * 1.7 + cos(cp.x * 4.8 - cp.z * 3.3+TIME * 1.0)) * 0.4;
+	highp float c = abs(cos(cp.x * 4.0 + cp.z * 5.0 + TIME * 0.31) * 1.7 + cos(cp.x * 5.8 - cp.z * 6.3 + TIME * 2.0)) * 0.05;
+	highp float d = max(abs((cos(cp.x * 0.20 + cp.z * 0.3 + TIME * 0.81) * 1.7 + cos(cp.x * 0.8 - cp.z * 0.3 + TIME * 1.0)) * b), 0.5);
+    color = (COLOR + vec4(a, b, c, 0.0)) * d;
+}
