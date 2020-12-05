@@ -1,0 +1,23 @@
+{
+    "format_version": 1,
+    "header": {
+        "description": "An open source shader for Minecraft Bedrock edition.",
+        "name": "OpenShader",
+        "uuid": "2a02844d-61b3-4e13-a56f-93a774e2cfa5",
+        "version": [1, 0, 0]
+    },
+    "modules": [
+        {
+            "description": "An open source shader for Minecraft Bedrock edition.",
+            "type": "resources",
+            "uuid": "2c9205b8-7201-4e2a-9f71-0b0c2255cafd",
+            "version": [1, 0, 0]
+        }
+    ],
+    "metadata": {
+        "authors": [
+            "Various contributors"
+        ],
+        "url": "https://github.com/ThatCakeID/OpenShader"
+    }
+}
