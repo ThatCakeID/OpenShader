@@ -1,5 +1,5 @@
-vec3 dayWorldColor = vec3(265.0/255.0, 268.0/255.0, 265.0/255.0);
-vec3 nightWorldColor = vec3(0.57, 0.65, 0.86);
+vec3 dayWorldColor = vec3(235.0/255.0, 238.0/255.0, 235.0/255.0);
+vec3 nightWorldColor = vec3(0.47, 0.55, 0.76);
 vec3 duskWorldColor = vec3(1.6, 1.0, 0.5);
 vec3 rainDayWorldColor = vec3(0.33, 0.4, 0.26);
 vec3 rainNightWorldColor = vec3(0.77, 0.67, 0.62);
@@ -27,7 +27,7 @@ vec3 dayFogColor = vec3(0.9, 0.9, 0.9);
 vec3 nightFogColor = vec3(0.1, 0.1, 0.1);
 vec3 duskFogColor = vec3(0.4, 0.3, 0.2);
 
-vec3 torchColor = vec3(255.0/255.0, 255.0/255.0, 255.0/255.0);
+vec3 torchColor = vec3(235.0/255.0, 215.0/255.0, 185.0/255.0);
 vec3 torchUnderwaterColor = vec3(76.0/255.0, 175.0/255.0, 275.0/255.0);
 vec3 torchUnderwaterColor2 = vec3(43.0/255.0, 61.0/255.0, 210.0/255.0);
 
